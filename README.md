@@ -4,7 +4,13 @@
 
 ## Getting started
 
-Nodejs App and PHP App From Docker To Kubernetes Cluster with traefik and metallb.
+Nodejs App and PHP App From Docker To Kubernetes Cluster with traefik and metallb. 
+
+I create alias to help me save time for exemple : alias k="kubectl", alias kg="kubectl get".
+
+vi ~/.bashrc (edit and write then here) and save
+
+source ~/.bashrc
 
 ## Provisionning of a VM
 
