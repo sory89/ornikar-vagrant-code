@@ -4,7 +4,7 @@
 
 ## Getting started
 
-Nodejs App and PHP App From Docker To Kubernetes Cluster with traefik and metallb. 
+_Nodejs App and PHP App From Docker To Kubernetes Cluster with traefik and metallb._ 
 
 I create alias to help me save time for exemple : alias k="kubectl", alias kg="kubectl get".
 
@@ -227,19 +227,19 @@ CMD node src/index.js
 EXPOSE 3000
 ```
 
-1* This download the image node version 13 from Dockerhub
+1. This download the image node version 13 from Dockerhub
 
-2* WORKDIR, tells docker the working directory of our image (in our case it is /app), it cd on lunix. 
+2. WORKDIR, tells docker the working directory of our image (in our case it is /app), it cd on lunix. 
 
-2* CMD or RUN commands execute in this folder
+3. CMD or RUN commands execute in this folder
 
-3* CP stands for copy; Here, we’re copying package.json file to /app
+4. CP stands for copy; Here, we’re copying package.json file to /app
 
-4* RUN : launch the command
+5. RUN : launch the command
 
-5* CMD : Execute the command
+6. CMD : Execute the command
 
-6* EXPOSE 3000, here it informs the user container (using this image) that it needs to open port 3000.
+7. EXPOSE 3000, here it informs the user container (using this image) that it needs to open port 3000.
 
 
 build a image with this command and create container
