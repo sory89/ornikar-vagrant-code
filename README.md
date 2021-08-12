@@ -4,86 +4,417 @@
 
 ## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Nodejs App and PHP App From Docker To Kubernetes Cluster with traefik and metallb.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Provisionning of a VM
 
-## Add your files
+* Install of Minikube
 
-- [ ] [Create](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+The package is in the the script shell bootstrap.
+
+In the script bootstrap.sh that I had explain in this part [Click on the link to see more details](https://github.com/sory89/Vagrant-Machine-Ornikar/edit/main/README.md?). 
+
+Requirements :
+
+I have install kubectl, Here I use Docker as a provider :)
+
+To see all the command click on [bootstrap.sh](https://github.com/sory89/Vagrant-Machine-Ornikar/blob/main/bootstrap.sh?)
+
+to start kubernetes :
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/Sory_Hawa/exo-ornikar.git
-git branch -M main
-git push -uf origin main
+$ minikube start --force --driver=docker
+
+and Check if the service is running
+
+root@server00:~/MiniKube-K8S/ornikar-vagrant-code/Vagrant-Machine-Ornikar# minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
 ```
 
-## Integrate with your tools
+After provisionnning, if you have a errorr.
+delete the minikube docker with the follow command and delete the log file
 
-- [ ] [Set up project integrations](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/integrations/)
+```
+$ minikube delete
 
-## Collaborate with your team
+$ rm -rf /tmp/juju* && rm-rf /tmp/mini*
 
-- [ ] [Invite team members and collaborators](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Automatically merge when pipeline succeeds](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+and restart the minikube with
 
-## Test and Deploy
+$ minikube start --force --driver=docker
+```
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://docs.gitlab.com/ee/user/application_security/sast/)
+* Install of matallb
 
-***
+Metallb is a load-balancer implementation for bare metal Kubernetes clusters, using standard routing protocols.
 
-# Editing this README
+More see the [link](https://metallb.universe.tf/?)
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://gitlab.com/-/experiment/new_project_readme_content:65669611a053f8d38a3445f29d13d9ec?https://www.makeareadme.com/) for this template.
+```
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/metallb.yaml
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+```
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+to see the IP adress of LoadBalancer
 
-## Name
-Choose a self-explaining name for your project.
+```
+root@server00:~/MiniKube-K8S/ornikar-vagrant-code/Vagrant-Machine-Ornikar# minikube ip
+192.168.49.2
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+MetalLB is instructed to hand out addresses from 192.168.49.1 to 192.168.49.5. After that, we’ll create a config map in the metallb-system namespace.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```
+root@server00:~/kubernetes/exo-ornikar# cat config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - 192.168.49.1-192.168.49.5
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+than
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```
+kubectl create -f config.yaml
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```
+root@server00:~/kubernetes/exo-ornikar# kubectl -n metallb-system get all
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/controller-6b78bff7d9-6wgb8   1/1     Running   2          25h
+pod/speaker-nhnfd                 1/1     Running   1          25h
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+NAME                     DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+daemonset.apps/speaker   1         1         1       1            1           kubernetes.io/os=linux   25h
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/controller   1/1     1            1           25h
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+NAME                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/controller-6b78bff7d9   1         1         1       25h
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+I deploy the nginx to test the loadbalancer
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```
+kubectl create deploy nginx --image nginx
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
 
-## License
-For open source projects, say how it is licensed.
+kubectl get all
+kubectl expose deploy nginx --port 80 --type LoadBalancer
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+kubectl get svc
+root@server00:~/kubernetes/exo-ornikar# kubectl get svc
+NAME         TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)        AGE
+kubernetes   ClusterIP      10.96.0.1       <none>         443/TCP        26h
+nginx        LoadBalancer   10.100.35.154   192.168.49.2   80:32201/TCP   25h
+nodejs-app   ClusterIP      10.102.42.24    <none>         80/TCP         24h
+php-app      ClusterIP      10.110.51.218   <none>         80/TCP         17h
 
+lynx 192.168.49.2
+
+```
+
+
+* Install of traefik
+
+to install [traefik](https://doc.traefik.io/traefik/getting-started/install-traefik/?), I use [HELM](https://helm.sh/?). 
+
+```
+helm repo add traefik https://helm.traefik.io/traefik
+helm repo update
+helm repo list
+helm search repo traefik
+helm show values traefik/traefik > /tmp/traefik-values.yaml
+
+```
+
+
+```
+vi /tmp/traefik-values.yaml
+
+Then edit traefik-values.yaml and change the 
+persistence:
+  enabled: false
+  
+  by
+  
+persistence:
+  enabled: true
+  
+helm install traefik traefik/traefik --values /tmp/traefik-values.yaml -n traefik --create-namespace
+```
+
+Check the namespace 
+```
+root@server00:~/kubernetes/exo-ornikar# kubectl get ns
+NAME              STATUS   AGE
+default           Active   26h
+kube-node-lease   Active   26h
+kube-public       Active   26h
+kube-system       Active   26h
+metallb-system    Active   25h
+traefik           Active   25h
+```
+
+Run the traefik
+```
+root@server00:~/kubernetes/exo-ornikar# kubectl -n traefik get all
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/traefik-f4f8dfb5b-hrv4b   1/1     Running   1          26h
+
+NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)                      AGE
+service/traefik   LoadBalancer   10.96.137.163   192.168.49.1   80:30616/TCP,443:30062/TCP   26h
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/traefik   1/1     1            1           26h
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/traefik-f4f8dfb5b   1         1         1       26h
+```
+
+and 
+
+```
+root@server00:~/kubernetes/exo-ornikar# kubectl -n traefik port-forward traefik-f4f8dfb5b-hrv4b 9000:9000
+Forwarding from 127.0.0.1:9000 -> 9000
+Forwarding from [::1]:9000 -> 9000
+.
+.
+.
+```
+
+to check the dashboard "localhost:9000/dashboard/"
+
+
+## Deploy An App in the Docker and Kubernetes
+
+### Node App in Docker
+
+* [Docker](https://www.docker.com/?) and [Kubernetes](https://www.Kubernetes.com/?)
+
+In Dockerfile
+
+```
+FROM node:13
+WORKDIR /app
+COPY package.json /app
+RUN npm install
+COPY . /app
+CMD node src/index.js
+EXPOSE 3000
+```
+
+1* This download the image node version 13 from Dockerhub
+
+2* WORKDIR, tells docker the working directory of our image (in our case it is /app), it cd on lunix. 
+
+2* CMD or RUN commands execute in this folder
+
+3* CP stands for copy; Here, we’re copying package.json file to /app
+
+4* RUN : launch the command
+
+5* CMD : Execute the command
+
+6* EXPOSE 3000, here it informs the user container (using this image) that it needs to open port 3000.
+
+
+build a image with this command and create container
+
+```
+docker build -t node-server .
+
+docker run -d --name node-app -p 3000:3000 node-server
+
+```
+
+## Registry Docker Hub and GitLab
+
+First connect to Docker hub registry with your login or GitLab registry
+```
+docker tag node-server sorydiallo89/nodejs-starter
+
+docker push sorydiallo89/nodejs-starter
+
+```
+
+### PHP App in Docker
+
+In Dockerfile
+
+```
+FROM php:7.2-cli
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y git
+WORKDIR /app
+RUN curl -sS https://getcomposer.org/installer | \
+    php -- --install-dir=/usr/bin/ --filename=composer
+COPY composer.json /app
+RUN composer install --no-scripts --no-autoloader
+COPY . /app
+CMD php public/index.php
+EXPOSE 3000
+```
+
+I do the same :)
+
+
+## YAML File To Create A Deployment In Kubernetes Cluster
+
+YAML is a human-readable extensible markup language. It’s used in Kubernetes to create an object in a declarative way.
+
+The deploy a Docker image node in kubernetes
+
+This file is a deployment nodejs-deploy.yml
+
+```
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nodejs-app
+  namespace: default
+  labels:
+    app: nodejs-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+      - name: nodejs-app
+        image: "sorydiallo89/nodejs-starter"
+        ports:
+          - containerPort: 3000
+```
+
+and service nodejs-svc.yml
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-app
+  namespace: default
+spec:
+  selector:
+    app: php-app
+  ports:
+  - name: http
+    targetPort: 3000
+    port: 80
+```
+
+
+The deploy a Docker image PHP in kubernetes
+
+This file is a deployment php-deploy.yml
+
+```
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: php-app
+  namespace: default
+  labels:
+    app: php-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-app
+  template:
+    metadata:
+      labels:
+        app: php-app
+    spec:
+      containers:
+      - name: php-app
+        image: "sorydiallo89/php-starter"
+        ports:
+          - containerPort: 3000
+```
+
+and service nodejs-svc.yml
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-app
+  namespace: default
+spec:
+  selector:
+    app: php-app
+  ports:
+  - name: http
+    targetPort: 3000
+    port: 80
+```
+
+then the traefik-ingress.yml
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traefik-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: ornikar.dev
+    http:
+      paths:
+      - backend:
+          service:
+            name: php-app
+            port:
+              number: 80
+        path: /world
+        pathType: Prefix
+  - host: ornikar.dev
+    http:
+      paths:
+      - backend:
+          service:
+            name: nodejs-app
+            port:
+              number: 80
+        path: /hello
+        pathType: Prefix
+```
+
+To create deploy, service, ingress
+
+```
+kubectl create -f .
+```
+
+then : 
+
+http://ornikar.dev/hello and http://ornikar.dev/world
